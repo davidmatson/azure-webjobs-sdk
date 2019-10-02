@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
 using System;
+using System.Linq;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Bindings.Cancellation;
 using Microsoft.Azure.WebJobs.Host.Bindings.Data;
@@ -12,6 +13,7 @@ using Microsoft.Azure.WebJobs.Host.Loggers;
 using Microsoft.Azure.WebJobs.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.WebJobs
 {
@@ -58,10 +60,10 @@ namespace Microsoft.Azure.WebJobs
 
         public static IWebJobsBuilder UseWebJobsStartup<T>(this IWebJobsBuilder builder) where T : IWebJobsStartup, new()
         {
-            return builder.UseWebJobsStartup(typeof(T));
+            return builder.UseWebJobsStartup(typeof(T)); // TODO - how to instantiate logger here?
         }
 
-        public static IWebJobsBuilder UseWebJobsStartup(this IWebJobsBuilder builder, Type startupType)
+        public static IWebJobsBuilder UseWebJobsStartup(this IWebJobsBuilder builder, Type startupType) // TODO - add logger
         {
             if (!typeof(IWebJobsStartup).IsAssignableFrom(startupType))
             {
@@ -69,7 +71,17 @@ namespace Microsoft.Azure.WebJobs
             }
 
             IWebJobsStartup startup = (IWebJobsStartup)Activator.CreateInstance(startupType);
+
+            // track services before
+            IServiceCollection servicesBefore = builder.Services;
+
             startup.Configure(builder);
+
+            // track services after configure, compare diff, log the diff
+            IServiceCollection servicesAfter = builder.Services;
+
+            var diff = servicesAfter.Except(servicesBefore).ToList(); // Except is O(n+m)
+
 
             return builder;
         }
