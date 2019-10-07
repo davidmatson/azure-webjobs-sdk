@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.Azure.WebJobs.Host.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Azure.WebJobs.Host
@@ -12,9 +13,11 @@ namespace Microsoft.Azure.WebJobs.Host
     {
         public WebJobsBuilder(IServiceCollection services)
         {
-            Services = services ?? throw new ArgumentNullException(nameof(services));
+            Services.ServiceCollection = services ?? throw new ArgumentNullException(nameof(services));
         }
 
-        public IServiceCollection Services { get; }
+        public ServiceCollectionDecorator Services { get; }
+
+       // TODO - okay to have decorator rather than ISC here? 
     }
 }

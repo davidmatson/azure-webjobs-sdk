@@ -60,10 +60,27 @@ namespace Microsoft.Azure.WebJobs
 
         public static IWebJobsBuilder UseWebJobsStartup<T>(this IWebJobsBuilder builder) where T : IWebJobsStartup, new()
         {
-            return builder.UseWebJobsStartup(typeof(T)); // TODO - how to instantiate logger here?
+            return builder.UseWebJobsStartup(typeof(T));
         }
 
-        public static IWebJobsBuilder UseWebJobsStartup(this IWebJobsBuilder builder, Type startupType) // TODO - add logger
+        public static IWebJobsBuilder UseWebJobsStartup(this IWebJobsBuilder builder, Type startupType) 
+        {
+            if (!typeof(IWebJobsStartup).IsAssignableFrom(startupType))
+            {
+                throw new ArgumentException($"The {nameof(startupType)} argument must be an implementation of {typeof(IWebJobsStartup).FullName}");
+            }
+
+            IWebJobsStartup startup = (IWebJobsStartup)Activator.CreateInstance(startupType);
+            startup.Configure(builder);
+            return builder;
+        }
+
+        public static IWebJobsBuilder UseWebJobsStartup<T>(this IWebJobsBuilder builder, ILogger logger) where T : IWebJobsStartup, new()
+        {
+            return builder.UseWebJobsStartup(typeof(T), logger);
+        }
+
+        public static IWebJobsBuilder UseWebJobsStartup(this IWebJobsBuilder builder, Type startupType, ILogger logger) 
         {
             if (!typeof(IWebJobsStartup).IsAssignableFrom(startupType))
             {
@@ -73,14 +90,16 @@ namespace Microsoft.Azure.WebJobs
             IWebJobsStartup startup = (IWebJobsStartup)Activator.CreateInstance(startupType);
 
             // track services before
-            IServiceCollection servicesBefore = builder.Services;
+            //IServiceCollection servicesBefore = builder.Services;
+
+            ServiceCollectionDecorator tracker = new ServiceCollectionDecorator(builder.Services);
 
             startup.Configure(builder);
 
             // track services after configure, compare diff, log the diff
-            IServiceCollection servicesAfter = builder.Services;
+            //IServiceCollection servicesAfter = builder.Services;
 
-            var diff = servicesAfter.Except(servicesBefore).ToList(); // Except is O(n+m)
+            //var diff = servicesAfter.Except(servicesBefore).ToList(); // Except is O(n+m)
 
 
             return builder;
